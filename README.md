@@ -2,6 +2,8 @@
 
 An MCP (Model Context Protocol) server for interacting with the Thermomix Cookidoo platform, built with `fastmcp`.
 
+> **Disclaimer:** This is an unofficial project. The developers are not affiliated with, endorsed by, or connected to Cookidoo, Vorwerk, Thermomix, or any of their subsidiaries or trademarks.
+
 ## Features
 
 - **Authentication**: Connect to your Cookidoo account securely
@@ -42,17 +44,9 @@ An MCP (Model Context Protocol) server for interacting with the Thermomix Cookid
 - `generate_recipe_structure` - Structure a new recipe
 - `upload_custom_recipe` - Upload a recipe to Cookidoo
 
-## Development
+## Acknowledgments
 
-**Format code:**
-```bash
-black .
-```
-
-**Lint code:**
-```bash
-ruff check .
-```
+This project is built on top of the [cookidoo-api](https://github.com/miaucl/cookidoo-api), which provides the Python interface to interact with the Cookidoo platform. Special thanks for making this integration possible!
 
 ## License
 
