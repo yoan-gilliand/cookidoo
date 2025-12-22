@@ -190,7 +190,7 @@ class CookidooService:
                 "hints": "\n".join(hints) if hints and isinstance(hints, list) else (hints if hints else ""),
                 "workStatus": "PRIVATE",
                 "recipeMetadata": {
-                    "requiresAnnotationsCheck": False
+                    "requiresAnnotationsCheck": True
                 }
             }
             

@@ -19,68 +19,204 @@ from schemas import CustomRecipe
 st.set_page_config(
     page_title="Cookidoo Recipe Creator",
     page_icon="🍳",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for premium look
+# Modern minimalist liquid glass CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
-    .main {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    }
-    
+    /* Dark theme base */
     .stApp {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        background: linear-gradient(145deg, #0a0a0f 0%, #12121a 50%, #0d0d14 100%);
     }
     
+    .main .block-container {
+        max-width: 800px;
+        padding-top: 2rem;
+    }
+    
+    /* Header */
     h1 {
-        background: linear-gradient(90deg, #00d4aa, #00b4d8, #7209b7);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        font-weight: 700 !important;
-        text-align: center;
-        padding: 1rem 0;
-    }
-    
-    h2, h3 {
-        color: #e0e0e0 !important;
         font-weight: 600 !important;
+        font-size: 2rem !important;
+        color: #ffffff !important;
+        text-align: center;
+        letter-spacing: -0.02em;
     }
     
-    .stTextInput > div > div > input,
-    .stTextArea > div > div > textarea {
-        background: rgba(255, 255, 255, 0.08) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 12px !important;
+    /* Subtext */
+    .subtitle {
+        text-align: center;
+        color: rgba(255,255,255,0.5);
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+    }
+    
+    /* Glass card */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+    
+    /* Welcome card */
+    .welcome-card {
+        background: rgba(255, 255, 255, 0.02);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 2rem 0;
+        text-align: center;
+    }
+    
+    .welcome-card h3 {
+        color: #ffffff !important;
+        font-weight: 500 !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    .welcome-card p {
+        color: rgba(255,255,255,0.6);
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+    
+    .welcome-card .step {
+        display: inline-block;
+        background: rgba(255,255,255,0.05);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        margin: 0.3rem;
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.7);
+    }
+    
+    /* Chat messages */
+    .stChatMessage {
+        background: rgba(255, 255, 255, 0.02) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 16px !important;
+        padding: 1rem !important;
+    }
+    
+    [data-testid="stChatMessageContent"] {
+        color: rgba(255,255,255,0.9) !important;
+    }
+    
+    /* Chat input */
+    .stChatInput {
+        border-radius: 16px !important;
+    }
+    
+    .stChatInput > div {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 16px !important;
+    }
+    
+    .stChatInput input {
         color: #ffffff !important;
     }
     
+    .stChatInput input::placeholder {
+        color: rgba(255,255,255,0.4) !important;
+    }
+    
+    /* Buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #00d4aa 0%, #00b4d8 100%) !important;
-        color: #1a1a2e !important;
-        border: none !important;
-        border-radius: 12px !important;
-        padding: 0.75rem 2rem !important;
-        font-weight: 600 !important;
-    }
-    
-    .stChatMessage {
         background: rgba(255, 255, 255, 0.05) !important;
-        border-radius: 16px !important;
+        color: rgba(255,255,255,0.9) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        padding: 0.6rem 1.2rem !important;
+        font-weight: 500 !important;
+        font-size: 0.9rem !important;
+        transition: all 0.2s ease !important;
     }
     
+    .stButton > button:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    /* File uploader */
+    [data-testid="stFileUploader"] {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px dashed rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        padding: 1rem !important;
+    }
+    
+    [data-testid="stFileUploader"] label {
+        color: rgba(255,255,255,0.6) !important;
+    }
+    
+    [data-testid="stFileUploaderDropzone"] {
+        background: transparent !important;
+    }
+    
+    /* Success/Info/Error */
+    .stSuccess, .stInfo {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 12px !important;
+        color: rgba(255,255,255,0.8) !important;
+    }
+    
+    .stError {
+        background: rgba(255, 100, 100, 0.1) !important;
+        border: 1px solid rgba(255, 100, 100, 0.2) !important;
+        border-radius: 12px !important;
+    }
+    
+    /* Spinner */
+    .stSpinner > div {
+        border-color: rgba(255,255,255,0.2) !important;
+        border-top-color: rgba(255,255,255,0.8) !important;
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-radius: 12px !important;
+        color: rgba(255,255,255,0.8) !important;
+    }
+    
+    /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+    
+    /* Hide sidebar */
+    [data-testid="stSidebar"] {display: none;}
+    
+    /* Image preview */
+    .uploaded-image {
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        max-height: 200px;
+        object-fit: cover;
+    }
+    
+    /* Action buttons row */
+    .action-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -336,27 +472,30 @@ def check_password() -> bool:
     if st.session_state.authenticated:
         return True
     
-    col1, col2, col3 = st.columns([1, 2, 1])
+    st.markdown("# 🍳 Cookidoo")
+    st.markdown('<p class="subtitle">AI-powered Thermomix recipe creator</p>', unsafe_allow_html=True)
     
+    st.markdown("""
+    <div class="welcome-card">
+        <h3>🔐 Enter to continue</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        st.markdown("# 🍳 Cookidoo Recipe Creator")
-        st.markdown("<p style='text-align: center; color: #b0b0b0;'>AI-powered Thermomix recipe creator</p>", unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        
         password = st.text_input(
             "Password",
             type="password",
-            placeholder="Enter your password...",
+            placeholder="Enter password...",
             label_visibility="collapsed"
         )
         
-        if st.button("🚀 Enter", use_container_width=True):
+        if st.button("Continue →", use_container_width=True):
             if password == st.secrets.get("app_password", ""):
                 st.session_state.authenticated = True
                 st.rerun()
             else:
-                st.error("❌ Incorrect password")
+                st.error("Incorrect password")
     
     return False
 
@@ -411,9 +550,9 @@ def process_with_gemini(user_message: str, chat_history: list) -> tuple[str, lis
         function_name = function_call.name
         function_args = dict(function_call.args) if function_call.args else {}
         
-        function_outputs.append(f"🔧 Executing `{function_name}`...")
+        function_outputs.append(f"🔧 {function_name}")
         result = execute_function_call(function_name, function_args)
-        function_outputs.append(f"✅ Done!")
+        function_outputs.append(f"✓ Done")
         
         # Send function result back
         response = chat.send_message(
@@ -438,7 +577,7 @@ def process_with_gemini(user_message: str, chat_history: list) -> tuple[str, lis
                     final_text += part.text
     
     if not final_text:
-        final_text = "J'ai terminé l'action demandée."
+        final_text = "Done."
     
     return final_text, function_outputs
 
@@ -447,68 +586,104 @@ def main_app():
     """Main chat application."""
     
     # Header
-    st.markdown("# 🍳 Cookidoo Recipe Creator")
-    st.markdown("<p style='text-align: center; color: #b0b0b0; margin-top: -1rem;'>Chat with AI to create Thermomix recipes</p>", unsafe_allow_html=True)
+    st.markdown("# 🍳 Cookidoo")
+    st.markdown('<p class="subtitle">AI-powered Thermomix recipe creator</p>', unsafe_allow_html=True)
     
-    # Initialize chat history
+    # Initialize session state
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "pending_image" not in st.session_state:
+        st.session_state.pending_image = None
+    
+    # Show welcome card if no messages
+    if not st.session_state.messages:
+        st.markdown("""
+        <div class="welcome-card">
+            <h3>How it works</h3>
+            <p>
+                <span class="step">1. Paste a recipe URL</span>
+                <span class="step">2. Or upload an image</span>
+                <span class="step">3. AI adapts for Thermomix</span>
+                <span class="step">4. Say OK to upload</span>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Display chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
+    # Image upload section (always visible above chat input)
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        uploaded_file = st.file_uploader(
+            "📷 Upload recipe image",
+            type=["jpg", "jpeg", "png", "webp"],
+            label_visibility="collapsed",
+            key="image_upload"
+        )
+    
+    with col2:
+        if st.button("🗑️ Clear", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.pending_image = None
+            st.rerun()
+    
+    # Process uploaded image
+    if uploaded_file is not None and st.session_state.pending_image != uploaded_file.name:
+        st.session_state.pending_image = uploaded_file.name
+        
+        with st.spinner("📷 Reading recipe from image..."):
+            try:
+                import PIL.Image
+                import io
+                
+                image_bytes = uploaded_file.getvalue()
+                image = PIL.Image.open(io.BytesIO(image_bytes))
+                
+                genai.configure(api_key=st.secrets["gemini_api_key"])
+                model = genai.GenerativeModel("gemini-2.5-flash")
+                
+                response = model.generate_content([
+                    "Extrais la recette de cette image. Donne-moi le nom, les ingrédients et les étapes. Réponds en français de manière structurée.",
+                    image
+                ])
+                
+                extracted_text = response.text
+                user_msg = f"📷 Recette extraite d'une image:\n\n{extracted_text}\n\nAdapte cette recette pour le Thermomix."
+                st.session_state.messages.append({"role": "user", "content": user_msg})
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+    
     # Chat input
-    if prompt := st.chat_input("Paste a recipe URL or describe what you want to cook..."):
-        # Add user message
+    if prompt := st.chat_input("Paste a recipe URL or describe what you want..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
+        
         with st.chat_message("user"):
             st.markdown(prompt)
         
-        # Get AI response
         with st.chat_message("assistant"):
-            with st.spinner("🤖 Thinking..."):
+            with st.spinner(""):
                 try:
-                    # Get chat history (excluding current message)
                     history = st.session_state.messages[:-1]
-                    
-                    # Process with Gemini
                     response_text, function_logs = process_with_gemini(prompt, history)
                     
-                    # Show function execution logs
                     for log in function_logs:
-                        if log.startswith("🔧"):
-                            st.info(log)
-                        else:
-                            st.success(log)
+                        st.caption(log)
                     
-                    # Show response
                     st.markdown(response_text)
                     st.session_state.messages.append({"role": "assistant", "content": response_text})
                     
                 except Exception as e:
-                    error_msg = f"❌ Error: {str(e)}"
+                    error_msg = f"Error: {str(e)}"
                     st.error(error_msg)
                     import traceback
                     st.code(traceback.format_exc())
                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
-    
-    # Sidebar
-    with st.sidebar:
-        st.markdown("### 💡 How to use")
-        st.markdown("""
-        1. Paste a recipe URL from any site
-        2. AI will adapt it for Thermomix
-        3. Review and say "OK" to approve
-        4. Recipe uploads to Cookidoo!
-        """)
-        
-        st.markdown("---")
-        
-        if st.button("🗑️ Clear Chat", use_container_width=True):
-            st.session_state.messages = []
-            st.rerun()
 
 
 # Main entry point
