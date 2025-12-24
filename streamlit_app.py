@@ -21,7 +21,7 @@ import time
 
 # Page configuration
 st.set_page_config(
-    page_title="Cookidoo Recipe Creator",
+    page_title="Créateur de Recettes Cookidoo",
     page_icon="🍳",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -637,25 +637,25 @@ def check_password() -> bool:
             return True
     
     st.markdown("# 🍳 Cookidoo")
-    st.markdown('<p class="subtitle">AI-powered Thermomix recipe creator</p>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">Créateur de recettes Thermomix assisté par IA</p>', unsafe_allow_html=True)
     
     st.markdown("""
     <div class="login-card">
-        <h3>🔐 Welcome Back</h3>
-        <p>Enter your password to continue</p>
+        <h3>🔐 Bon retour</h3>
+        <p>Entrez votre mot de passe pour continuer</p>
     </div>
     """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         password = st.text_input(
-            "Password",
+            "Mot de passe",
             type="password",
-            placeholder="Enter password...",
+            placeholder="Entrez le mot de passe...",
             label_visibility="collapsed"
         )
         
-        if st.button("Continue →", use_container_width=True):
+        if st.button("Continuer →", use_container_width=True):
             if password == app_password:
                 st.session_state.authenticated = True
                 
@@ -667,9 +667,9 @@ def check_password() -> bool:
                 time.sleep(0.5)
                 st.rerun()
             elif password == "":
-                 st.warning("Please enter a password")
+                 st.warning("Veuillez entrer un mot de passe")
             else:
-                st.error("Incorrect password")
+                st.error("Mot de passe incorrect")
     
     return False
 
@@ -761,7 +761,7 @@ def main_app():
     
     # Header
     st.markdown("# 🍳 Cookidoo")
-    st.markdown('<p class="subtitle">AI-powered Thermomix recipe creator</p>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">Créateur de recettes Thermomix assisté par IA</p>', unsafe_allow_html=True)
     
     # Initialize session state
     if "messages" not in st.session_state:
@@ -773,23 +773,23 @@ def main_app():
     if not st.session_state.messages:
         st.markdown("""
         <div class="welcome-card">
-            <h3>How it works</h3>
+            <h3>Comment ça marche</h3>
             <div class="steps-grid">
                 <div class="step-item">
                     <div class="step-number">1</div>
-                    <div class="step-text">Paste a recipe URL from any website</div>
+                    <div class="step-text">Collez une URL de recette de n'importe quel site</div>
                 </div>
                 <div class="step-item">
                     <div class="step-number">2</div>
-                    <div class="step-text">Or upload an image of a recipe</div>
+                    <div class="step-text">Ou importez une photo de recette</div>
                 </div>
                 <div class="step-item">
                     <div class="step-number">3</div>
-                    <div class="step-text">AI adapts it for Thermomix</div>
+                    <div class="step-text">L'IA l'adapte pour le Thermomix</div>
                 </div>
                 <div class="step-item">
                     <div class="step-number">4</div>
-                    <div class="step-text">Say OK to upload to Cookidoo</div>
+                    <div class="step-text">Validez pour publier sur Cookidoo</div>
                 </div>
             </div>
         </div>
@@ -803,7 +803,7 @@ def main_app():
     # Image upload section - only show when no messages yet
     if not st.session_state.messages:
         uploaded_file = st.file_uploader(
-            "📷 Upload recipe image",
+            "📷 Importer une photo de recette",
             type=["jpg", "jpeg", "png", "webp"],
             label_visibility="collapsed",
             key="image_upload"
@@ -843,7 +843,7 @@ def main_app():
                     st.error(f"Error: {str(e)}")
     
     # Chat input
-    if prompt := st.chat_input("Paste a recipe URL or describe what you want..."):
+    if prompt := st.chat_input("Collez une URL ou décrivez votre envie..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         
         with st.chat_message("user"):
