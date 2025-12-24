@@ -158,27 +158,7 @@ st.markdown("""
         color: rgba(255,255,255,0.9) !important;
     }
     
-    /* Chat input - harmonized with dark theme */
-    [data-testid="stChatInput"] {
-        padding: 1rem 0 !important;
-    }
-    
-    [data-testid="stChatInput"] > div {
-        background: rgba(255, 255, 255, 0.04) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 16px !important;
-        padding: 0.25rem !important;
-    }
-    
-    [data-testid="stChatInput"] textarea {
-        background: transparent !important;
-        color: rgba(255,255,255,0.95) !important;
-        caret-color: rgba(255,255,255,0.8) !important;
-    }
-    
-    [data-testid="stChatInput"] textarea::placeholder {
-        color: rgba(255,255,255,0.4) !important;
-    }
+    /* Chat input styles - Removed early definition to consolidate at the bottom */
     
     /* Chat input send button */
     [data-testid="stChatInput"] button {
@@ -371,6 +351,169 @@ st.markdown("""
     
     [data-testid="stTextInput"] button:hover {
         color: rgba(255,255,255,0.8) !important;
+    }
+    
+    /* Fix mobile UI issues */
+    /* Force bottom container background to match theme (removes white gap on mobile) */
+    [data-testid="stBottom"] {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    [data-testid="stBottom"] > div {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+    
+    /* Force chat input container background to be distinct but integrated */
+    .stChatInputContainer {
+        bottom: 0px !important;
+        background: rgba(10, 10, 15, 0.95);
+        backdrop-filter: blur(20px);
+        padding-bottom: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    /* Ensure bot text is white even if mobile browser tries to style it */
+    [data-testid="stMarkdownContainer"] p {
+        color: rgba(255,255,255,0.9) !important;
+    }
+    
+    /* Fix native mobile input styles */
+    input, textarea {
+        appearance: none;
+        -webkit-appearance: none;
+        background-color: transparent !important; 
+    }
+    
+    /* Specific fix for footer overlapping or floating */
+    footer {
+        display: none !important;
+        height: 0px !important;
+        margin: 0px !important;
+        padding: 0px !important;
+    }
+    
+    /* Header container spacing fix */
+    [data-testid="stHeader"] {
+        display: none !important;
+        height: 0px !important;
+    }
+    
+    /* Force remove the massive default top padding */
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 1rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        padding-bottom: 6rem !important;
+        max-width: 100% !important;
+    }
+    
+    /* Mobile-specific adjustments */
+    @media (max-width: 640px) {
+        [data-testid="stMainBlockContainer"] {
+            padding-top: 0.5rem !important; /* Extremely minimal top padding */
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            padding-bottom: 0.5rem !important; 
+        }
+        
+        /* Reduce header size on mobile */
+        h1 {
+            font-size: 1.5rem !important;
+            margin-bottom: 0.5rem !important;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+        
+        .subtitle {
+            font-size: 0.85rem !important;
+            margin-bottom: 1.5rem !important;
+        }
+        
+        /* Anchor chat input to bottom */
+        .stChatInputContainer {
+            bottom: 0px !important;
+            position: fixed !important;
+            width: 100% !important;
+            left: 0 !important;
+            right: 0 !important;
+            padding: 1rem 1rem 1rem 1rem !important;
+            background: #0a0a0f !important; /* Solid completely opaque background */
+            border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 999999 !important;
+        }
+        
+        [data-testid="stChatInput"] {
+            padding-bottom: 0 !important;
+        }
+    }
+    
+    /* Chat input styles */
+    [data-testid="stChatInput"] > div {
+        background-color: #1e1e24 !important; 
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 8px !important; 
+        padding-right: 0.5rem !important;
+        padding-left: 0.5rem !important;
+        align-items: center !important;
+    }
+
+    /* Chat input textarea */
+    [data-testid="stChatInputTextArea"] {
+        background-color: #1e1e24 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 0.4rem 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        height: auto !important;
+        min-height: 24px !important;
+        color: #ffffff !important;
+        caret-color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        background-image: none !important;
+        color-scheme: dark !important;
+    }
+
+    /* Universal input styling */
+    input, textarea, [data-testid="stTextInput"] input {
+        background-color: #1e1e24 !important;
+        color: #ffffff !important;
+        caret-color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 12px !important;
+        padding: 0.75rem 1rem !important;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+    }
+    
+    [data-testid="stChatInputTextArea"] {
+        border: none !important;
+    }
+
+    /* Focus states */
+    input:focus, textarea:focus, [data-testid="stTextInput"] input:focus {
+        background-color: #25252d !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
+        outline: none !important;
+    }
+    
+    [data-testid="stChatInputTextArea"]:focus {
+        background-color: #1e1e24 !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    
+    /* Placeholder styling */
+    ::placeholder, [data-testid="stChatInputTextArea"]::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
+        -webkit-text-fill-color: rgba(255, 255, 255, 0.5) !important;
+        opacity: 1 !important;
     }
 </style>
 """, unsafe_allow_html=True)
