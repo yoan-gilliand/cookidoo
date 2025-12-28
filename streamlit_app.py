@@ -11,7 +11,6 @@ import re
 import httpx
 from bs4 import BeautifulSoup
 import google.generativeai as genai
-from google.generativeai.types import FunctionDeclaration, Tool
 from cookidoo_service import CookidooService
 from schemas import CustomRecipe
 import extra_streamlit_components as stx
@@ -521,11 +520,12 @@ st.markdown("""
 
 # ==================== TOOL FUNCTIONS ====================
 
+@st.cache_data(ttl=3600)
 def scrape_recipe_from_url(url: str) -> dict:
-    """Scrape recipe details from any recipe website."""
+    """Scrape recipe details with multiple fallback strategies."""
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         
         with httpx.Client(follow_redirects=True, timeout=15.0) as client:
@@ -602,20 +602,42 @@ def scrape_recipe_from_url(url: str) -> dict:
                                 if text:
                                     result['steps'].append(str(text).strip())
                     
-                    if result['name']:
+                    if result['name'] and (result['ingredients'] or result['steps']):
                         return result
             except:
                 continue
         
-        # Fallback to HTML parsing
+        # Fallback: Try common HTML patterns
         title_tag = soup.find('h1') or soup.find('title')
         if title_tag:
             result['name'] = title_tag.get_text(strip=True)
         
+        # Try to find ingredients
+        for selector in ['[class*="ingredient"]', '[itemprop="recipeIngredient"]', '.ingredients li', 'ul.ingredients li']:
+            elements = soup.select(selector)
+            if elements:
+                result['ingredients'] = [el.get_text(strip=True) for el in elements if el.get_text(strip=True)]
+                break
+        
+        # Try to find steps
+        for selector in ['[class*="instruction"]', '[class*="step"]', '[itemprop="recipeInstructions"]', '.preparation li', '.steps li']:
+            elements = soup.select(selector)
+            if elements:
+                result['steps'] = [el.get_text(strip=True) for el in elements if el.get_text(strip=True)]
+                break
+        
+        # If still no data, include raw text for AI extraction
+        if not result['ingredients'] and not result['steps']:
+            # Get page text for AI fallback
+            for tag in soup(['script', 'style', 'nav', 'header', 'footer']):
+                tag.decompose()
+            result['raw_text'] = soup.get_text(separator='\n', strip=True)[:8000]
+            result['needs_ai_extraction'] = True
+        
         return result
         
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "url": url}
 
 
 async def upload_to_cookidoo(name: str, ingredients: list, steps: list, servings: int = 4, prep_time: int = 30, total_time: int = 60, hints: list = None) -> dict:
@@ -667,85 +689,121 @@ except FileNotFoundError:
     st.error("System prompt file not found!")
     SYSTEM_PROMPT = "You are a helpful assistant."
 
-# ==================== GEMINI SETUP ====================
+# Add JSON output instruction to system prompt
+SYSTEM_PROMPT_WITH_JSON = SYSTEM_PROMPT + """
+
+---
+
+## 5. Format de Sortie Final
+
+Présente TOUJOURS ta réponse dans ce format EXACT:
+
+### Avertissements
+(Si `[[ATTENTION : ÉQUIPEMENT SUPPLÉMENTAIRE REQUIS]]` est déclenché, affiche-le ici)
+
+### Ingrédients
+- Liste complète des ingrédients avec quantités
+
+### Instructions
+1. **[Titre étape]**: Description. **Temps / Température / Vitesse**.
+2. ...
+
+### Récapitulatif
+**Portions:** X | **Préparation:** X min | **Temps total:** X min
+
+### JSON (pour l'upload)
+```json
+{"name": "Nom", "ingredients": ["ing1", "ing2"], "steps": ["étape 1 complète", "étape 2 complète"], "servings": 4, "prep_time": 30, "total_time": 60}
+```
+
+IMPORTANT: Les "steps" et "ingredients" dans le JSON doivent être des STRINGS simples, pas des objets.
+"""
 
 
-def get_gemini_tools():
-    """Create Gemini function declarations."""
-    scrape_recipe = FunctionDeclaration(
-        name="scrape_recipe",
-        description="Récupère les détails d'une recette depuis n'importe quel site web (Marmiton, Cuisineaz, etc.)",
-        parameters={
-            "type": "object",
-            "properties": {
-                "url": {
-                    "type": "string",
-                    "description": "L'URL de la recette à récupérer"
-                }
-            },
-            "required": ["url"]
-        }
-    )
-    
-    upload_recipe = FunctionDeclaration(
-        name="upload_recipe",
-        description="Publie une recette personnalisée sur Cookidoo. N'utiliser qu'après confirmation de l'utilisateur.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Nom de la recette"
-                },
-                "ingredients": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Liste des ingrédients avec quantités"
-                },
-                "steps": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Étapes de préparation adaptées au Thermomix"
-                },
-                "servings": {
-                    "type": "integer",
-                    "description": "Nombre de portions (défaut: 4)"
-                },
-                "prep_time": {
-                    "type": "integer",
-                    "description": "Temps de préparation en minutes (défaut: 30)"
-                },
-                "total_time": {
-                    "type": "integer",
-                    "description": "Temps total en minutes (défaut: 60)"
-                }
-            },
-            "required": ["name", "ingredients", "steps"]
-        }
-    )
-    
-    return Tool(function_declarations=[scrape_recipe, upload_recipe])
+def clean_response_for_display(response_text: str) -> str:
+    """Remove JSON block from response for user display."""
+    # Remove JSON code block
+    cleaned = re.sub(r'```json\s*\{.*?\}\s*```', '', response_text, flags=re.DOTALL)
+    # Remove standalone JSON object at the end
+    cleaned = re.sub(r'\n\s*\{"name".*\}\s*$', '', cleaned, flags=re.DOTALL)
+    return cleaned.strip()
 
 
-def execute_function_call(function_name: str, function_args: dict) -> str:
-    """Execute a function call from Gemini."""
-    if function_name == "scrape_recipe":
-        result = scrape_recipe_from_url(function_args.get("url", ""))
-        return json.dumps(result, ensure_ascii=False, indent=2)
+def extract_url_from_message(message: str) -> str | None:
+    """Extract first URL from a message."""
+    url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
+    match = re.search(url_pattern, message)
+    return match.group(0) if match else None
+
+
+def extract_recipe_json(response_text: str) -> dict | None:
+    """Extract JSON recipe data from Gemini response and normalize steps."""
+    data = None
     
-    elif function_name == "upload_recipe":
-        result = asyncio.run(upload_to_cookidoo(
-            name=function_args.get("name", "Recipe"),
-            ingredients=function_args.get("ingredients", []),
-            steps=function_args.get("steps", []),
-            servings=function_args.get("servings", 4),
-            prep_time=function_args.get("prep_time", 30),
-            total_time=function_args.get("total_time", 60),
-            hints=function_args.get("hints")
-        ))
-        return json.dumps(result, ensure_ascii=False, indent=2)
+    # Try to find JSON block
+    match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            pass
     
-    return json.dumps({"error": f"Unknown function: {function_name}"})
+    # Try to find raw JSON object
+    if not data:
+        match = re.search(r'\{[^{}]*"name"[^{}]*\}', response_text, re.DOTALL)
+        if match:
+            try:
+                data = json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+    
+    if not data:
+        return None
+    
+    # Normalize steps: if they are dicts, convert to plain text strings
+    if "steps" in data and isinstance(data["steps"], list):
+        normalized_steps = []
+        for step in data["steps"]:
+            if isinstance(step, dict):
+                # Extract description and combine with time/temp/speed if present
+                desc = step.get("description", step.get("text", ""))
+                time_val = step.get("time", "")
+                temp = step.get("temperature", "")
+                speed = step.get("speed", "")
+                # Build step text: "description. time / temp / speed"
+                parts = [desc]
+                if time_val and time_val != "0":
+                    details = [time_val]
+                    if temp and temp != "0°C":
+                        details.append(temp)
+                    if speed and speed != "Manuel":
+                        details.append(speed)
+                    if details:
+                        parts.append(" / ".join(details))
+                normalized_steps.append(". ".join(parts) if len(parts) > 1 else desc)
+            else:
+                normalized_steps.append(str(step))
+        data["steps"] = normalized_steps
+    
+    # Normalize ingredients: if they are dicts, extract text
+    if "ingredients" in data and isinstance(data["ingredients"], list):
+        normalized_ingredients = []
+        for ing in data["ingredients"]:
+            if isinstance(ing, dict):
+                # Extract text from dict
+                text = ing.get("text", ing.get("name", ing.get("ingredient", "")))
+                quantity = ing.get("quantity", ing.get("amount", ""))
+                if quantity and text:
+                    normalized_ingredients.append(f"{quantity} {text}")
+                elif text:
+                    normalized_ingredients.append(text)
+            else:
+                normalized_ingredients.append(str(ing))
+        data["ingredients"] = normalized_ingredients
+    
+    return data
+
+
 
 
 def check_password() -> bool:
@@ -817,15 +875,22 @@ def check_password() -> bool:
     return False
 
 
-def process_with_gemini(user_message: str, chat_history: list) -> tuple[str, list]:
-    """Process a message with Gemini and handle function calls."""
+def process_with_gemini(user_message: str, chat_history: list, scraped_data: dict = None) -> str:
+    """Process a message with Gemini. No function calls - single API call.
     
+    Args:
+        user_message: The user's message
+        chat_history: Previous conversation history
+        scraped_data: Pre-scraped recipe data (if URL was detected)
+    
+    Returns:
+        The AI response text
+    """
     genai.configure(api_key=st.secrets["gemini_api_key"])
     
     model = genai.GenerativeModel(
         model_name="gemini-2.5-flash",
-        tools=[get_gemini_tools()],
-        system_instruction=SYSTEM_PROMPT
+        system_instruction=SYSTEM_PROMPT_WITH_JSON
     )
     
     # Build conversation history for Gemini
@@ -836,71 +901,34 @@ def process_with_gemini(user_message: str, chat_history: list) -> tuple[str, lis
     
     chat = model.start_chat(history=gemini_history)
     
-    response = chat.send_message(user_message)
+    # Enrich message with scraped data if available
+    enriched_message = user_message
+    if scraped_data:
+        if scraped_data.get("error"):
+            enriched_message += f"\n\n[Erreur lors de la récupération: {scraped_data['error']}]"
+        elif scraped_data.get("needs_ai_extraction"):
+            enriched_message += f"\n\n[Données non structurées - extrait le contenu de ce texte:]\n{scraped_data.get('raw_text', '')[:6000]}"
+        else:
+            enriched_message += f"\n\n[Données de recette extraites:]\n{json.dumps(scraped_data, ensure_ascii=False, indent=2)}"
     
-    # Process function calls
-    function_outputs = []
-    max_iterations = 5
-    iteration = 0
+    response = chat.send_message(enriched_message)
     
-    while iteration < max_iterations:
-        iteration += 1
-        
-        # Check for function calls
-        if not response.candidates:
-            break
-            
-        candidate = response.candidates[0]
-        if not candidate.content or not candidate.content.parts:
-            break
-        
-        function_call = None
-        for part in candidate.content.parts:
-            if hasattr(part, 'function_call') and part.function_call.name:
-                function_call = part.function_call
-                break
-        
-        if not function_call:
-            break
-        
-        # Execute function
-        function_name = function_call.name
-        function_args = dict(function_call.args) if function_call.args else {}
-        
-        function_outputs.append(f"🔧 {function_name}")
-        result = execute_function_call(function_name, function_args)
-        function_outputs.append(f"✓ Done")
-        
-        # Send function result back
-        response = chat.send_message(
-            genai.protos.Content(
-                parts=[genai.protos.Part(
-                    function_response=genai.protos.FunctionResponse(
-                        name=function_name,
-                        response={"result": result}
-                    )
-                )]
-            )
-        )
-    
-    # Get final text
-    final_text = ""
+    # Get response text
     try:
-        final_text = response.text
+        return response.text
     except:
         if response.candidates and response.candidates[0].content:
+            text = ""
             for part in response.candidates[0].content.parts:
                 if hasattr(part, 'text') and part.text:
-                    final_text += part.text
+                    text += part.text
+            return text if text else "Désolé, je n'ai pas pu traiter cette demande."
     
-    if not final_text:
-        final_text = "Done."
-    
-    return final_text, function_outputs
+    return "Désolé, je n'ai pas pu traiter cette demande."
 
 
 def main_app():
-    """Main chat application."""
+    """Main chat application with optimized single API call flow."""
     
     # Header
     st.markdown("# 🍳 Cookidoo")
@@ -909,8 +937,10 @@ def main_app():
     # Initialize session state
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    if "pending_image" not in st.session_state:
-        st.session_state.pending_image = None
+    if "pending_recipe" not in st.session_state:
+        st.session_state.pending_recipe = None
+    if "processed_image_hash" not in st.session_state:
+        st.session_state.processed_image_hash = None
     
     # Show welcome card if no messages
     if not st.session_state.messages:
@@ -943,6 +973,33 @@ def main_app():
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
+    # Show pending recipe upload button if available
+    if st.session_state.pending_recipe:
+        recipe = st.session_state.pending_recipe
+        st.markdown("---")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown(f"**📋 Recette prête:** {recipe.get('name', 'Sans nom')}")
+        with col2:
+            if st.button("✅ Publier sur Cookidoo", key="upload_btn", type="primary"):
+                with st.spinner("Publication en cours..."):
+                    try:
+                        result = asyncio.run(upload_to_cookidoo(
+                            name=recipe.get("name", "Recette"),
+                            ingredients=recipe.get("ingredients", []),
+                            steps=recipe.get("steps", []),
+                            servings=recipe.get("servings", 4),
+                            prep_time=recipe.get("prep_time", 30),
+                            total_time=recipe.get("total_time", 60)
+                        ))
+                        if result.get("success"):
+                            st.success(f"✅ Recette publiée! [Voir sur Cookidoo]({result['url']})")
+                            st.session_state.pending_recipe = None
+                        else:
+                            st.error(f"Erreur: {result.get('error', 'Erreur inconnue')}")
+                    except Exception as e:
+                        st.error(f"Erreur lors de la publication: {str(e)}")
+    
     # Image upload section - only show when no messages yet
     if not st.session_state.messages:
         uploaded_file = st.file_uploader(
@@ -952,38 +1009,53 @@ def main_app():
             key="image_upload"
         )
         
-        # Process uploaded image
-        if uploaded_file is not None and st.session_state.pending_image != uploaded_file.name:
-            st.session_state.pending_image = uploaded_file.name
+        # Process uploaded image - use content hash for Samsung compatibility
+        if uploaded_file is not None:
+            image_bytes = uploaded_file.getvalue()
+            file_hash = hashlib.md5(image_bytes).hexdigest()
             
-            with st.spinner("📷 Lecture et adaptation de la recette..."):
-                try:
-                    import PIL.Image
-                    import io
+            # Show image preview
+            st.image(uploaded_file, width=200, caption="Image sélectionnée")
+            
+            # Check if this image was already processed
+            if st.session_state.processed_image_hash != file_hash:
+                # Button to trigger analysis (fallback for Samsung)
+                if st.button("📷 Analyser cette image", key="analyze_img_btn"):
+                    st.session_state.processed_image_hash = file_hash
                     
-                    image_bytes = uploaded_file.getvalue()
-                    image = PIL.Image.open(io.BytesIO(image_bytes))
-                    
-                    genai.configure(api_key=st.secrets["gemini_api_key"])
-                    model = genai.GenerativeModel("gemini-2.5-flash")
-                    
-                    response = model.generate_content([
-                        "Extrais la recette de cette image. Donne-moi le nom, les ingrédients et les étapes. Réponds en français de manière structurée.",
-                        image
-                    ])
-                    
-                    extracted_text = response.text
-                    user_msg = f"📷 Recette extraite d'une image:\n\n{extracted_text}\n\nAdapte cette recette pour le Thermomix."
-                    
-                    # Process the extracted recipe with Gemini to adapt for Thermomix
-                    # Don't add user message to history - just show the AI response
-                    response_text, function_logs = process_with_gemini(user_msg, [])
-                    
-                    st.session_state.messages.append({"role": "assistant", "content": response_text})
-                    st.rerun()
-                    
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
+                    with st.spinner("📷 Lecture et adaptation de la recette..."):
+                        try:
+                            import PIL.Image
+                            import io
+                            
+                            image = PIL.Image.open(io.BytesIO(image_bytes))
+                            
+                            # Single API call: extract + adapt with system prompt
+                            genai.configure(api_key=st.secrets["gemini_api_key"])
+                            model = genai.GenerativeModel(
+                                "gemini-2.5-flash",
+                                system_instruction=SYSTEM_PROMPT_WITH_JSON
+                            )
+                            
+                            response = model.generate_content([
+                                "Extrais la recette de cette image et adapte-la pour le Thermomix TM6 selon tes instructions. Présente la version adaptée et termine par le bloc JSON.",
+                                image
+                            ])
+                            
+                            response_text = response.text
+                            
+                            # Extract JSON for upload button
+                            recipe_json = extract_recipe_json(response_text)
+                            if recipe_json:
+                                st.session_state.pending_recipe = recipe_json
+                            
+                            st.session_state.messages.append({"role": "assistant", "content": response_text})
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error(f"Erreur lors de l'analyse: {str(e)}")
+                            import traceback
+                            st.code(traceback.format_exc())
     
     # Chat input
     if prompt := st.chat_input("Collez une URL ou décrivez votre envie..."):
@@ -996,21 +1068,39 @@ def main_app():
             with st.spinner(""):
                 try:
                     history = st.session_state.messages[:-1]
-                    response_text, function_logs = process_with_gemini(prompt, history)
                     
-                    for log in function_logs:
-                        st.caption(log)
+                    # Pre-scrape URL if detected (avoids function call)
+                    scraped_data = None
+                    url = extract_url_from_message(prompt)
+                    if url:
+                        with st.spinner("🔍 Récupération de la recette..."):
+                            scraped_data = scrape_recipe_from_url(url)
                     
-                    st.markdown(response_text)
+                    # Single API call
+                    response_text = process_with_gemini(prompt, history, scraped_data)
+                    
+                    # Extract JSON for upload button BEFORE display
+                    recipe_json = extract_recipe_json(response_text)
+                    if recipe_json:
+                        st.session_state.pending_recipe = recipe_json
+                    
+                    # Clean response for display (remove JSON block)
+                    display_text = clean_response_for_display(response_text)
+                    st.markdown(display_text)
                     
                     # Check for equipment warning
                     if "[[ATTENTION : ÉQUIPEMENT SUPPLÉMENTAIRE REQUIS]]" in response_text:
                         st.warning("⚠️ Attention : Cette recette nécessite un équipement supplémentaire (four, poêle, etc.) que le Thermomix ne peut pas remplacer.")
                         
-                    st.session_state.messages.append({"role": "assistant", "content": response_text})
+                    # Store cleaned version in history
+                    st.session_state.messages.append({"role": "assistant", "content": display_text})
+                    
+                    # Rerun to show upload button
+                    if recipe_json:
+                        st.rerun()
                     
                 except Exception as e:
-                    error_msg = f"Error: {str(e)}"
+                    error_msg = f"Erreur: {str(e)}"
                     st.error(error_msg)
                     import traceback
                     st.code(traceback.format_exc())
