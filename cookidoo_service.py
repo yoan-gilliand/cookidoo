@@ -131,24 +131,18 @@ class CookidooService:
             raise Exception("Not authenticated. Please call login() first.")
         
         try:
-            # Get the access token from the authenticated client
-            auth_data = self._api_client.auth_data
-            if not auth_data:
-                raise Exception("No authentication data available")
-            
             localization = self._api_client.localization
             # Extract base domain from the URL (e.g., "https://cookidoo.fr/foundation/fr-FR" -> "https://cookidoo.fr")
             url_parts = localization.url.split("/")
             base_url = f"{url_parts[0]}//{url_parts[2]}"  # protocol + domain
-            locale = localization.language 
-            
-            # Headers for the undocumented API
+            locale = localization.language
+
+            # Auth is cookie-based — the session jar carries credentials automatically
             headers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {self._api_client.auth_data.access_token}"
             }
-            
+
             # Use the API client's session to ensure cookies are shared
             api_session = self._api_client._session
         
