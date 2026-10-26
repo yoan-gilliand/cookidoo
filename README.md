@@ -2,26 +2,17 @@
 
 Une interface de chat moderne propulsée par l'IA (Gemini) pour créer, adapter et uploader des recettes directement sur votre compte Thermomix Cookidoo.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![Streamlit](https://img.shields.io/badge/streamlit-1.32%2B-red)
+![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![Streamlit](https://img.shields.io/badge/streamlit-1.50%2B-red)
 
 > **Disclaimer:** Ce projet est non-officiel. Les développeurs ne sont pas affiliés, approuvés ou liés à Cookidoo, Vorwerk, Thermomix ou l'une de leurs filiales.
 
 ## ✨ Fonctionnalités
 
-### 🤖 Assistant IA (Gemini)
-- **Chat en langage naturel** : Décrivez ce que vous voulez cuisiner, l'IA s'occupe du reste.
-- **Adaptation automatique** : Transforme n'importe quelle recette classique en étapes Thermomix (vitesses, températures, modes).
-- **Extraction d'image** : Prenez une photo d'un plat ou d'une recette papier, l'IA la convertit en recette Cookidoo.
-- **Import via URL** : Collez le lien d'un site de cuisine (Marmiton, CuisineAZ, etc.), l'IA l'adapte instantanément.
-
-### 📱 Interface Moderne
-- **Design Premium** : Interface sombre style "Glassmorphism" optimisée pour mobile et desktop.
-- **Login Persistant** : Plus besoin de se reconnecter à chaque fois (gestion sécurisée des cookies).
-- **Expérience Fluide** : Animations et interactions soignées.
-
-### 🔗 Intégration Cookidoo
-- **Upload Direct** : Envoyez vos créations directement dans votre bibliothèque "Mes Créations" sur Cookidoo.
-- **Backend MCP** : Construit sur une architecture robuste MCP (Model Context Protocol).
+- **URL, texte ou photo** : collez le lien d'un site (Marmiton, CuisineAZ…), décrivez une envie ou joignez une photo de recette papier.
+- **Adaptation TM6** : l'IA (Gemini) convertit chaque étape en réglages Thermomix (temps, température, vitesse, sens inverse), dans les limites de la machine.
+- **Ajustements en discutant** : « pour 6 personnes », « sans lactose »… la recette est mise à jour.
+- **Publication en un clic** dans « Mes créations » sur Cookidoo, avec des étapes en **cuisson guidée** (réglages cliquables sur le TM6).
+- **Accès protégé** par mot de passe, mémorisé 30 jours.
 
 ---
 
@@ -79,7 +70,7 @@ L'application sera accessible sur `http://localhost:8501` (ou votre IP réseau l
 Ce projet repose sur le travail exceptionnel de la communauté open-source.
 
 - **Auteur API Original** : Un immense merci à **[Alexandre Patelli](https://github.com/alexandrepa)** pour sa librairie **[mcp-cookidoo](https://github.com/alexandrepa/mcp-cookidoo)**. C'est grâce à son travail de reverse-engineering de l'API Cookidoo que ce projet est possible.
-- **Architecture MCP** : Basé sur le protocole MCP (Model Context Protocol).
+- **Librairie [cookidoo-api](https://github.com/miaucl/cookidoo-api)** pour l'accès à Cookidoo.
 - **UI/UX & Intégration IA** : Développé pour offrir une expérience utilisateur fluide et moderne.
 
 ---
